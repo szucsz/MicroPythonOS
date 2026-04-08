@@ -179,9 +179,25 @@ def detect_board():
         is_esp32s3 = "S3" in sys.implementation._machine.upper()
 
         if is_esp32s3:
+            import time
             print("lilygo_t_hmi ?")
             if detect_lilygo_t_hmi():
                 return "lilygo_t_hmi"
+
+            print("lilygo_t_display_s3_touch ?")
+            # Pin(15) is the power enable for the board
+            # Pin(21) is the reset pin for the touch controller
+            machine.Pin(15, machine.Pin.OUT, value=1)
+            rst = machine.Pin(21, machine.Pin.OUT, value=0)
+            time.sleep_ms(50)
+            rst.value(1)
+            time.sleep_ms(50)
+            if i2c0 := fail_save_i2c(sda=18, scl=17):
+                if single_address_i2c_scan(i2c0, 0x15):
+                    return "lilygo_t_display_s3_touch"
+                restore_i2c(sda=18, scl=17)
+            machine.Pin(21, machine.Pin.IN, pull=None)
+            machine.Pin(15, machine.Pin.IN, pull=None)
 
             # Do I2C-based board detection
             print("lilygo_t_watch_s3_plus ?")
